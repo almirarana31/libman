@@ -11,16 +11,16 @@ def fetch_all_data(table_name):
     conn.close()
     return columns, result
 
-def insert_data(table_name, columns, values):
-    """Inserts data into a specified table."""
+def insert_data(table_name, values):
+    """Inserts data into a specified table without needing columns explicitly."""
     conn = create_connection()
     cursor = conn.cursor()
-    col_string = ', '.join(columns)
     placeholders = ', '.join(['%s'] * len(values))
-    query = f"INSERT INTO {table_name} ({col_string}) VALUES ({placeholders})"
+    query = f"INSERT INTO {table_name} VALUES ({placeholders})"
     cursor.execute(query, values)
     conn.commit()
     conn.close()
+
 
 def update_data(table_name, set_columns, values, condition):
     """Updates data in a specified table based on a condition."""

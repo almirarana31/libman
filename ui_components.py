@@ -1,21 +1,39 @@
 import customtkinter
+from tkinter import ttk
 
 def create_table_display(master, data, columns):
-    """Creates a table-like display in the GUI."""
+    """Creates a table display using Treeview with selection capability."""
+    # Create a frame to hold the table
     frame = customtkinter.CTkFrame(master)
-    if columns:
-        # Create header
-        for col_num, col_name in enumerate(columns):
-            label = customtkinter.CTkLabel(frame, text=col_name, font=("Arial", 12, "bold"))
-            label.grid(row=0, column=col_num, padx=5, pady=5)
+    frame.pack(fill="both", expand=True)
 
-        # Create data rows
-        for row_num, row_data in enumerate(data, start=1):
-            for col_num, item in enumerate(row_data):
-                label = customtkinter.CTkLabel(frame, text=item)
-                label.grid(row=row_num, column=col_num, padx=5, pady=5)
+    # Create the Treeview
+    tree = ttk.Treeview(frame, columns=columns, show='headings')
+    
+    # Configure scrollbars
+    y_scrollbar = ttk.Scrollbar(frame, orient='vertical', command=tree.yview)
+    x_scrollbar = ttk.Scrollbar(frame, orient='horizontal', command=tree.xview)
+    tree.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
+
+    # Set column headings
+    for col in columns:
+        tree.heading(col, text=col)
+        tree.column(col, minwidth=100, width=150)  # Adjust width as needed
+
+    # Insert data
+    if data:
+        for row in data:
+            tree.insert('', 'end', values=row)
     else:
-        label = customtkinter.CTkLabel(frame, text="No data available")
-        label.grid(row=0, column=0)
+        tree.insert('', 'end', values=['No data available'] * len(columns))
+
+    # Layout
+    tree.grid(row=0, column=0, sticky='nsew')
+    y_scrollbar.grid(row=0, column=1, sticky='ns')
+    x_scrollbar.grid(row=1, column=0, sticky='ew')
+
+    # Configure grid weights
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
 
     return frame
