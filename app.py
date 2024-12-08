@@ -9,25 +9,42 @@ class LibraryApp(customtkinter.CTk):
         self.title("Library Management System")
         self.geometry("1200x600")
 
-        # Sidebar for table navigation
-        self.sidebar_frame = customtkinter.CTkFrame(self, width=200)
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        # Sidebar for table navigation and CRUD buttons
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=250, corner_radius=10, fg_color="#2c3e50")
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew", padx=10, pady=10)
         self.main_frame = customtkinter.CTkFrame(self)
         self.main_frame.grid(row=0, column=1, sticky="nsew")
-        self.crud_button_frame = customtkinter.CTkFrame(self)
-        self.crud_button_frame.grid(row=1, column=1, sticky="ew")
 
         # Sidebar buttons for switching between tables
         table_names = ["Admins", "Members", "Publishers", "Authors", "Genres", "Books", "Loans", "Fines", "Reservations"]
+        self.table_buttons = {}
         for idx, table in enumerate(table_names):
             btn = customtkinter.CTkButton(
-                self.sidebar_frame, text=table, command=lambda t=table: self.load_table_data(t)
+                self.sidebar_frame, text=table, height=40, corner_radius=5, 
+                command=lambda t=table: self.load_table_data(t), fg_color="#2980b9"
             )
             btn.grid(row=idx, column=0, padx=10, pady=5, sticky="ew")
+            self.table_buttons[table] = btn
+
+        # CRUD buttons
+        self.crud_button_frame = customtkinter.CTkFrame(self.sidebar_frame)
+        self.crud_button_frame.grid(row=len(table_names), column=0, padx=10, pady=20, sticky="ew")
+
+        self.create_btn = customtkinter.CTkButton(self.crud_button_frame, text="Create", command=self.create_record, height=40, corner_radius=5, fg_color="#27ae60")
+        self.create_btn.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+
+        self.update_btn = customtkinter.CTkButton(self.crud_button_frame, text="Update", command=self.update_record, height=40, corner_radius=5, fg_color="#f39c12")
+        self.update_btn.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+
+        self.delete_btn = customtkinter.CTkButton(self.crud_button_frame, text="Delete", command=self.delete_record, height=40, corner_radius=5, fg_color="#e74c3c")
+        self.delete_btn.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
 
         # Initialize main display
         self.current_table = None
         self.form_entries = {}
+
+        # Load default table
+        self.load_table_data("Books")
 
     def load_table_data(self, table_name):
         """Loads and displays data for a specified table."""
@@ -43,28 +60,6 @@ class LibraryApp(customtkinter.CTk):
             table_frame = create_table_display(self.main_frame, data, columns)
             table_frame.pack(fill="both", expand=True)
 
-        # Update CRUD buttons
-        self.update_crud_buttons()
-
-    def update_crud_buttons(self):
-        """Creates and displays CRUD buttons."""
-        for widget in self.crud_button_frame.winfo_children():
-            widget.destroy()
-
-        if self.current_table:
-            create_btn = customtkinter.CTkButton(
-                self.crud_button_frame, text="Create", command=self.create_record
-            )
-            create_btn.grid(row=0, column=0, padx=5, pady=5)
-            update_btn = customtkinter.CTkButton(
-                self.crud_button_frame, text="Update", command=self.update_record
-            )
-            update_btn.grid(row=0, column=1, padx=5, pady=5)
-            delete_btn = customtkinter.CTkButton(
-                self.crud_button_frame, text="Delete", command=self.delete_record
-            )
-            delete_btn.grid(row=0, column=2, padx=5, pady=5)
-
     def create_record(self):
         """Opens a new form window for creating a record for the current table."""
         if not self.current_table:
@@ -78,11 +73,6 @@ class LibraryApp(customtkinter.CTk):
         left_frame = customtkinter.CTkFrame(form_window)
         left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
         
-        # Only create right frame for Books table
-        if self.current_table == "Books":
-            right_frame = customtkinter.CTkFrame(form_window)
-            right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
-
         # Create scrollable frame for form
         canvas = customtkinter.CTkCanvas(left_frame, height=400)
         scrollbar = ttk.Scrollbar(left_frame, orient="vertical", command=canvas.yview)
@@ -96,7 +86,9 @@ class LibraryApp(customtkinter.CTk):
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        # Get table columns
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+
         columns, _ = fetch_all_data(self.current_table)
         
         entry_widgets = {}
@@ -109,45 +101,6 @@ class LibraryApp(customtkinter.CTk):
             entry = customtkinter.CTkEntry(scrollable_frame, width=200)
             entry.grid(row=idx, column=1, padx=10, pady=5)
             entry_widgets[column] = entry
-
-        # Add reference tables for Books
-        if self.current_table == "Books":
-            # Fetch and display Authors
-            authors_label = customtkinter.CTkLabel(right_frame, text="Available Authors:", font=("Arial", 12, "bold"))
-            authors_label.pack(anchor="w", padx=10, pady=(10, 5))
-            
-            authors_data = fetch_all_data("Authors")
-            authors_text = "\n".join([f"ID: {author[0]} - {author[1]}" for author in authors_data[1]])
-            authors_textbox = customtkinter.CTkTextbox(right_frame, height=100, width=300)
-            authors_textbox.pack(padx=10, pady=(0, 10), fill="x")
-            authors_textbox.insert("1.0", authors_text)
-            authors_textbox.configure(state="disabled")
-
-            # Fetch and display Genres
-            genres_label = customtkinter.CTkLabel(right_frame, text="Available Genres:", font=("Arial", 12, "bold"))
-            genres_label.pack(anchor="w", padx=10, pady=(10, 5))
-            
-            genres_data = fetch_all_data("Genres")
-            genres_text = "\n".join([f"ID: {genre[0]} - {genre[1]}" for genre in genres_data[1]])
-            genres_textbox = customtkinter.CTkTextbox(right_frame, height=100, width=300)
-            genres_textbox.pack(padx=10, pady=(0, 10), fill="x")
-            genres_textbox.insert("1.0", genres_text)
-            genres_textbox.configure(state="disabled")
-
-            # Fetch and display Publishers
-            publishers_label = customtkinter.CTkLabel(right_frame, text="Available Publishers:", font=("Arial", 12, "bold"))
-            publishers_label.pack(anchor="w", padx=10, pady=(10, 5))
-            
-            publishers_data = fetch_all_data("Publishers")
-            publishers_text = "\n".join([f"ID: {pub[0]} - {pub[1]}" for pub in publishers_data[1]])
-            publishers_textbox = customtkinter.CTkTextbox(right_frame, height=100, width=300)
-            publishers_textbox.pack(padx=10, pady=(0, 10), fill="x")
-            publishers_textbox.insert("1.0", publishers_text)
-            publishers_textbox.configure(state="disabled")
-
-        # Pack scrollbar and canvas
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
 
         # Submit button at the bottom
         submit_frame = customtkinter.CTkFrame(form_window)
@@ -184,7 +137,7 @@ class LibraryApp(customtkinter.CTk):
             self.load_table_data(self.current_table)
 
         except Exception as e:
-            # Create a more user-friendly error message
+            # Show error in a contained frame
             error_msg = str(e)
             if "foreign key constraint fails" in error_msg.lower():
                 if "authorid" in error_msg.lower():
